@@ -8,7 +8,6 @@ class NoChatException : Exception()
 
 object ChatService {
     private val chats = mutableMapOf<Int, Chat>()
-
     fun addMessage(userId: Int, message: Message) {
         chats.getOrPut(userId) { Chat() }.messages += message
     }
@@ -25,16 +24,15 @@ object ChatService {
         chats[userId]?.messages?.removeAt(messageIndex)
     }
 
-    fun getUnreadChatsCount() = chats.values.count { chat -> chat.messages.any { !it.read } }
+    fun getUnreadChatsCount() = chats.asSequence()
+        .filter { it.value.messages.any { !it.read } }.count()
 
-    fun getLastMessages(): List<String> = chats.values.map { chat ->
-        chat.messages.lastOrNull()?.text ?: "No messages"
-    }
+    fun getLastMessages() = chats.asSequence()
+        .map { it.value.messages.lastOrNull()?.text ?: "No messages" }.toList()
 
-    fun getMessages(userId: Int, count: Int): List<Message> {
-        val chat = chats[userId] ?: throw NoChatException()
-        return chat.messages.takeLast(count).onEach { it.read = true }
-    }
+    fun getMessages(userId: Int, count: Int) = chats[userId]?.let { chat ->
+        chat.messages.takeLast(count).onEach { it.read = true }
+    } ?: throw NoChatException()
 
     fun printChats() = println(chats)
 }
